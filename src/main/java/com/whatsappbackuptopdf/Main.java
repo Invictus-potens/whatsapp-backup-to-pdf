@@ -7,7 +7,7 @@ import java.io.IOException;
 public class Main {
     public static void main(String[] args) {
         ZipExtractor extractor = new ZipExtractor();
-        File currentDir = new File (".");
+        File currentDir = new File ("./");
         String destPath = "./output_folder";
 
         File[] zipFiles = currentDir.listFiles((dir,name) -> name.toLowerCase().endsWith(".zip"));
@@ -29,4 +29,6 @@ public class Main {
             System.out.println("No files found.");
         }
     }
+
+
 }
