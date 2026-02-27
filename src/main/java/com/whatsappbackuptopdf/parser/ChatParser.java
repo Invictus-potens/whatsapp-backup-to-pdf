@@ -110,4 +110,14 @@ public class ChatParser {
         salvarMensagem(mensagens, ultimaData, ultimoAutor, mensagemAcumulada);
         return mensagens;
     }
+
+    public String detectarRemetente(List<MessageModel> mensagens, String nomeContato) {
+        return mensagens.stream()
+                .map(MessageModel::getSender)
+                .filter(sender -> sender != null && !sender.isBlank())
+                .filter(sender -> !sender.trim().equalsIgnoreCase(nomeContato.trim()))
+                .findFirst()
+                .orElse("");
+    }
+
 }

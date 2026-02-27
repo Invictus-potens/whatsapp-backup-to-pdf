@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.util.List;
 import com.whatsappbackuptopdf.model.MessageModel;
 import com.whatsappbackuptopdf.parser.ChatParser;
+import com.whatsappbackuptopdf.pdf.PdfBuilder;
+import com.whatsappbackuptopdf.pdf.HtmlGenerator;
+
 
 public class Main {
     public static void main(String[] args) {
@@ -22,6 +25,12 @@ public class Main {
             for (File zip : zipFiles) {
                 try {
 
+                    String nomeContato = zip.getName()
+                            .replaceAll("(?i)whatsapp chat with ", "")
+                            .replaceAll("\\.zip$", "")
+                            .trim();
+
+                    System.out.println("Contact found: " + nomeContato);
                     extractor.extract(zip.getAbsolutePath(), destPath);
 
                     File pastaSaida = new File(destPath);
@@ -32,9 +41,16 @@ public class Main {
 
                             List<MessageModel> mensagens = parser.parse(txt.getAbsolutePath());
                             System.out.println("Parsed " + mensagens.size() + " messages from " + txt.getName());
-                            com.whatsappbackuptopdf.pdf.PdfBuilder pdfBuilder = new com.whatsappbackuptopdf.pdf.PdfBuilder();
+                           if (mensagens.isEmpty()){
+                               System.out.println("No messages found");
+                               continue;
+                           }
+
+                            String nomeRemetente = parser.detectarRemetente(mensagens, nomeContato);
+                            System.out.println("Remetente detectado: " + nomeRemetente);
                             String nomePdf = txt.getName().toLowerCase().replace(".txt", ".pdf");
-                            pdfBuilder.generate(mensagens, destPath + "/" + nomePdf);
+                            PdfBuilder pdfBuilder = new PdfBuilder(nomeRemetente);
+                            pdfBuilder.gerarPdf(mensagens, destPath + "/" + nomePdf);
                         }
                     }
 
