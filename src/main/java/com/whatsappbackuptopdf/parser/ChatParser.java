@@ -1,7 +1,21 @@
+package com.whatsappbackuptopdf.parser;
+import com.whatsappbackuptopdf.model.MessageModel; // O seu modelo
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
 public class ChatParser {
 
+
     private static final Pattern PATTERN = Pattern.compile(
-            "^\u200E?\\[(\\d{2}/\\d{2}/\\d{2},\\s\\d{1,2}:\\d{2}:\\d{2}\\s?[AP]M)\\]\\s([^:]+):\\s(?:\u200E?<attached:\\s([^>]+)>|(.*))"
+            "^(\\d{1,2}/\\d{1,2}/\\d{2,4},\\s\\d{1,2}:\\d{2}\\s?[\\p{Z}\\s]?(?:AM|PM|am|pm))\\s-\\s([^:]+):\\s(.*)",
+            Pattern.CASE_INSENSITIVE
     );
 
     private void salvarMensagem(List<MessageModel> mensagens, String ultimaData,
@@ -24,13 +38,13 @@ public class ChatParser {
         String ultimoAutor = "";
         String ultimaData = "";
 
-        List<String> linhas = Files.readAllLines(
-                Paths.get(caminhoDoArquivo),
-                StandardCharsets.UTF_8
-        );
+        List<String> linhas = Files.readAllLines(Paths.get(caminhoDoArquivo), StandardCharsets.UTF_8);
 
         for (String linha : linhas) {
-            String linhaLimpa = linha.replaceAll("\u200E", "");
+
+            String linhaLimpa = linha.replaceAll("\u200E", "").trim();
+            if (linhaLimpa.isEmpty()) continue;
+
             Matcher matcher = PATTERN.matcher(linhaLimpa);
 
             if (matcher.find()) {
@@ -40,19 +54,17 @@ public class ChatParser {
                 ultimaData = matcher.group(1);
                 ultimoAutor = matcher.group(2);
 
-                String conteudo = (matcher.group(3) != null)
-                        ? "[ANEXO]: " + matcher.group(3)
-                        : matcher.group(4);
 
-                mensagemAcumulada.append(conteudo);
+                mensagemAcumulada.append(matcher.group(3));
             } else {
+
                 if (mensagemAcumulada.length() > 0) {
                     mensagemAcumulada.append("\n").append(linhaLimpa);
                 }
             }
         }
+
         salvarMensagem(mensagens, ultimaData, ultimoAutor, mensagemAcumulada);
-        // 🤔 o que falta aqui antes de retornar?
 
         return mensagens;
     }
