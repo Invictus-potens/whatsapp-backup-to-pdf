@@ -29,4 +29,4 @@ out/
 output_folder/
 
 #arquivos de teste
-whatsapp.zip
+*.zip
