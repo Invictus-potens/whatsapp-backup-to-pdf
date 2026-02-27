@@ -31,7 +31,7 @@ public class Main {
                         for (File txt : arquivosTxt) {
 
                             List<MessageModel> mensagens = parser.parse(txt.getAbsolutePath());
-                            System.out.println("Parsed " + mensagens.size() + " mensagens de " + txt.getName());
+                            System.out.println("Parsed " + mensagens.size() + " messages from " + txt.getName());
                             com.whatsappbackuptopdf.pdf.PdfBuilder pdfBuilder = new com.whatsappbackuptopdf.pdf.PdfBuilder();
                             String nomePdf = txt.getName().toLowerCase().replace(".txt", ".pdf");
                             pdfBuilder.generate(mensagens, destPath + "/" + nomePdf);
