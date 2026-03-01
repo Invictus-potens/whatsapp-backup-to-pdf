@@ -2,18 +2,33 @@ package com.whatsappbackuptopdf.pdf;
 
 import com.whatsappbackuptopdf.model.MessageModel;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.imageio.ImageIO;
 
 public class HtmlGenerator {
 
-    private final String nomeRemetente;
+    // "arquivo.jpg (file attached)" — formato Android
+    private static final Pattern PATTERN_FILE_ATTACHED = Pattern.compile("(\\S+\\.\\w+) \\(file attached\\)");
+    // "<attached: arquivo.jpg>" — formato iPhone (após escape HTML)
+    private static final Pattern PATTERN_ATTACHED_TAG = Pattern.compile("&lt;attached:\\s*([^&]+)&gt;");
+    // "<Media omitted>" — mídia não exportada
+    private static final Pattern PATTERN_MEDIA_OMITTED = Pattern.compile("&lt;Media omitted&gt;");
 
-    public HtmlGenerator(String nomeRemetente) {
+    private final String nomeRemetente;
+    private final String outputFolderPath;
+    private final java.util.Set<String> webpComFalha = new java.util.HashSet<>();
+
+    public HtmlGenerator(String nomeRemetente, String outputFolderPath) {
         this.nomeRemetente = nomeRemetente;
+        this.outputFolderPath = outputFolderPath;
     }
 
     public String gerarHtml(List<MessageModel> mensagens) {
@@ -118,6 +133,24 @@ public class HtmlGenerator {
                             font-style: italic;
                             color: #8696a0;
                         }
+
+                        .media-image {
+                            max-width: 100%;
+                            max-height: 300px;
+                            display: block;
+                            margin: 4px 0;
+                        }
+
+                        .media-placeholder {
+                            background-color: #f0f0f0;
+                            border-radius: 8px;
+                            padding: 10px 14px;
+                            color: #54656f;
+                            font-size: 12px;
+                            font-style: italic;
+                            display: block;
+                            margin: 4px 0;
+                        }
                     </style>
                 </head>
                 <body>
@@ -148,13 +181,13 @@ public class HtmlGenerator {
             String lado = enviada ? "sent" : "received";
             String conteudo = escaparHtml(msg.getContent());
 
-            // Destaca anexos
-            if (conteudo.contains("&lt;attached:")) {
-                conteudo = conteudo.replaceAll(
-                        "&lt;attached:\\s*([^&]+)&gt;",
-                        "<span class='attachment'>&#128206; $1</span>"
-                );
-            }
+            // Renderiza anexos — formato Android: "arquivo.jpg (file attached)"
+            conteudo = aplicarPadrao(conteudo, PATTERN_FILE_ATTACHED);
+            // Renderiza anexos — formato iPhone: "<attached: arquivo.jpg>"
+            conteudo = aplicarPadrao(conteudo, PATTERN_ATTACHED_TAG);
+            // Mídia omitida no export
+            conteudo = PATTERN_MEDIA_OMITTED.matcher(conteudo)
+                    .replaceAll("<div class='media-placeholder'>&#128247; mídia não incluída no export</div>");
 
             String autorHtml = (!enviada)
                     ? String.format("<div class='author-name'>%s</div>", escaparHtml(msg.getSender()))
@@ -193,6 +226,77 @@ public class HtmlGenerator {
         String html = gerarHtml(mensagens);
         Files.writeString(Paths.get(caminhoSaida), html, StandardCharsets.UTF_8);
         System.out.println("HTML gerado: " + caminhoSaida);
+    }
+
+    private String aplicarPadrao(String conteudo, Pattern padrao) {
+        Matcher matcher = padrao.matcher(conteudo);
+        StringBuffer sb = new StringBuffer();
+        while (matcher.find()) {
+            String nomeArquivo = matcher.group(1).trim();
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(renderizarAnexo(nomeArquivo)));
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+
+    private String detectarExtensao(String nomeArquivo) {
+        if (nomeArquivo == null || !nomeArquivo.contains(".")) return "";
+        return nomeArquivo.substring(nomeArquivo.lastIndexOf('.') + 1).toLowerCase();
+    }
+
+    private String renderizarAnexo(String nomeArquivo) {
+        String ext = detectarExtensao(nomeArquivo);
+        return switch (ext) {
+            case "jpg", "jpeg", "png", "gif" ->
+                    String.format("<img class='media-image' src='%s' alt='%s'/>", toUriPath(nomeArquivo), nomeArquivo);
+            case "webp" -> {
+                String pngNome = converterWebpParaPng(nomeArquivo);
+                if (pngNome != null) {
+                    yield String.format("<img class='media-image' src='%s' alt='%s'/>", toUriPath(pngNome), nomeArquivo);
+                }
+                yield String.format("<div class='media-placeholder'>&#128247; %s</div>", nomeArquivo);
+            }
+            case "mp3", "ogg", "aac", "m4a", "opus", "wav" ->
+                    String.format("<div class='media-placeholder'>&#127925; %s</div>", nomeArquivo);
+            case "mp4", "avi", "mov", "mkv", "3gp" ->
+                    String.format("<div class='media-placeholder'>&#127916; %s</div>", nomeArquivo);
+            default ->
+                    String.format("<span class='attachment'>&#128206; %s</span>", nomeArquivo);
+        };
+    }
+
+    private String converterWebpParaPng(String nomeArquivo) {
+        if (webpComFalha.contains(nomeArquivo)) return null;
+
+        Path webpPath = Paths.get(outputFolderPath, nomeArquivo);
+        if (!Files.exists(webpPath)) return null;
+
+        String pngNome = nomeArquivo.substring(0, nomeArquivo.lastIndexOf('.')) + ".png";
+        Path pngPath = Paths.get(outputFolderPath, pngNome);
+
+        if (Files.exists(pngPath)) return pngNome;
+
+        try {
+            BufferedImage img = ImageIO.read(webpPath.toFile());
+            if (img == null) {
+                webpComFalha.add(nomeArquivo);
+                return null;
+            }
+            ImageIO.write(img, "PNG", pngPath.toFile());
+            return pngNome;
+        } catch (IOException e) {
+            webpComFalha.add(nomeArquivo);
+            System.err.println("Falha ao converter WebP: " + nomeArquivo + " - " + e.getMessage());
+            return null;
+        }
+    }
+
+    private String toUriPath(String filename) {
+        try {
+            return new java.net.URI(null, null, filename, null).toASCIIString();
+        } catch (java.net.URISyntaxException e) {
+            return filename;
+        }
     }
 
     private String escaparHtml(String texto) {

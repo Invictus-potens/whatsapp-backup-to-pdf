@@ -41,16 +41,16 @@ public class Main {
 
                             List<MessageModel> mensagens = parser.parse(txt.getAbsolutePath());
                             System.out.println("Parsed " + mensagens.size() + " messages from " + txt.getName());
-                           if (mensagens.isEmpty()){
-                               System.out.println("No messages found");
-                               continue;
-                           }
+                            if (mensagens.isEmpty()){
+                                System.out.println("No messages found");
+                                continue;
+                            }
 
                             String nomeRemetente = parser.detectarRemetente(mensagens, nomeContato);
                             System.out.println("Remetente detectado: " + nomeRemetente);
                             String nomePdf = txt.getName().toLowerCase().replace(".txt", ".pdf");
-                            PdfBuilder pdfBuilder = new PdfBuilder(nomeRemetente);
-                            pdfBuilder.gerarPdf(mensagens, destPath + "/" + nomePdf);
+                            PdfBuilder pdfBuilder = new PdfBuilder(nomeRemetente, destPath);
+                            pdfBuilder.gerarPdf(mensagens, "./" + nomePdf);
                         }
                     }
 
