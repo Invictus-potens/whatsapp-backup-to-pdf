@@ -40,49 +40,58 @@ public class HtmlGenerator {
                 <head>
                     <meta charset="UTF-8"/>
                     <style>
-                        * { margin: 0; padding: 0; }
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
 
                         body {
-                            font-family: Arial, sans-serif;
-                            background-color: #e5ddd5;
-                            padding: 20px;
+                            font-family: "Segoe UI", Arial, sans-serif;
+                            background: linear-gradient(180deg, #d9dbd5 0%, #efeae2 100%);
+                            color: #1f2937;
+                            padding: 24px;
                         }
 
                         .chat-container {
-                            max-width: 800px;
+                            max-width: 860px;
                             margin: 0 auto;
+                            padding: 18px;
+                            background-color: #ece5dd;
+                            border-radius: 16px;
+                            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
                         }
 
                         /* Separador de data */
                         .date-divider {
                             text-align: center;
-                            margin: 12px 0;
+                            margin: 14px 0;
                         }
 
                         .date-divider span {
-                            background-color: #e1f2fb;
-                            color: #54656f;
+                            background-color: #e7f3ff;
+                            color: #4b5563;
                             font-size: 11px;
-                            padding: 4px 10px;
+                            font-weight: 600;
+                            padding: 5px 12px;
+                            border-radius: 999px;
+                            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
                         }
 
-                        /* Row de mensagem usando tabela */
                         .message-row {
                             width: 100%;
-                            margin-bottom: 4px;
+                            margin-bottom: 8px;
                             display: block;
                         }
 
-                        /* Lado esquerdo (recebida) */
-                        .message-row.received .bubble-wrap {
-                            float: left;
-                            max-width: 65%;
+                        .message-row.compact {
+                            margin-bottom: 2px;
                         }
 
-                        /* Lado direito (enviada) */
+                        .message-row.received .bubble-wrap {
+                            float: left;
+                            max-width: 72%;
+                        }
+
                         .message-row.sent .bubble-wrap {
                             float: right;
-                            max-width: 65%;
+                            max-width: 72%;
                         }
 
                         .clearfix {
@@ -92,9 +101,9 @@ public class HtmlGenerator {
 
                         .author-name {
                             font-size: 11px;
-                            font-weight: bold;
-                            color: #075e54;
-                            margin-bottom: 2px;
+                            font-weight: 700;
+                            color: #0f766e;
+                            margin: 0 2px 4px;
                         }
 
                         .bubble {
@@ -102,54 +111,73 @@ public class HtmlGenerator {
                             font-size: 12px;
                             line-height: 1.5;
                             word-wrap: break-word;
+                            border-radius: 12px;
+                            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+                        }
+
+                        .bubble-text {
+                            display: block;
                         }
 
                         .bubble.sent {
                             background-color: #dcf8c6;
+                            border-top-right-radius: 4px;
                         }
 
                         .bubble.received {
                             background-color: #ffffff;
+                            border-top-left-radius: 4px;
+                        }
+
+                        .message-row.sent.compact .bubble {
+                            border-top-right-radius: 10px;
+                        }
+
+                        .message-row.received.compact .bubble {
+                            border-top-left-radius: 10px;
                         }
 
                         .time {
                             font-size: 10px;
-                            color: #8696a0;
-                            text-align: right;
+                            color: #6b7280;
                             display: block;
+                            text-align: right;
                             margin-top: 2px;
                         }
 
                         .system-message {
                             text-align: center;
                             font-size: 11px;
-                            color: #54656f;
-                            background-color: #fef9c3;
-                            padding: 4px 12px;
-                            margin: 6px auto;
+                            color: #4b5563;
+                            background-color: #fff3c4;
+                            padding: 6px 12px;
+                            margin: 8px auto;
+                            border-radius: 999px;
                         }
 
                         .attachment {
                             font-style: italic;
-                            color: #8696a0;
+                            color: #4b5563;
                         }
 
                         .media-image {
-                            max-width: 100%;
-                            max-height: 300px;
+                            max-width: 300px;
+                            max-height: 240px;
                             display: block;
                             margin: 4px 0;
+                            border-radius: 10px;
                         }
 
                         .media-placeholder {
-                            background-color: #f0f0f0;
-                            border-radius: 8px;
+                            background-color: #f8fafc;
+                            border: 1px dashed #cbd5e1;
+                            border-radius: 10px;
                             padding: 10px 14px;
-                            color: #54656f;
+                            color: #475569;
                             font-size: 12px;
                             font-style: italic;
                             display: block;
-                            margin: 4px 0;
+                            margin: 6px 0;
                         }
                     </style>
                 </head>
@@ -158,12 +186,16 @@ public class HtmlGenerator {
                 """);
 
         String ultimaData = "";
+        String ultimoLado = "";
+        String ultimoRemetente = "";
 
         for (MessageModel msg : mensagens) {
 
             // Separador de data
             if (!msg.getDate().equals(ultimaData)) {
                 ultimaData = msg.getDate();
+                ultimoLado = "";
+                ultimoRemetente = "";
                 sb.append(String.format("""
                         <div class="date-divider"><span>%s</span></div>
                         """, escaparHtml(ultimaData)));
@@ -171,6 +203,8 @@ public class HtmlGenerator {
 
             // Mensagem de sistema
             if (msg.getSender() == null || msg.getSender().isBlank()) {
+                ultimoLado = "";
+                ultimoRemetente = "";
                 sb.append(String.format("""
                         <div class="system-message">%s</div>
                         """, escaparHtml(msg.getContent())));
@@ -179,6 +213,8 @@ public class HtmlGenerator {
 
             boolean enviada = msg.getSender().trim().equalsIgnoreCase(nomeRemetente.trim());
             String lado = enviada ? "sent" : "received";
+            String remetenteAtual = msg.getSender().trim();
+            boolean mesmaSequencia = lado.equals(ultimoLado) && remetenteAtual.equalsIgnoreCase(ultimoRemetente);
             String conteudo = escaparHtml(msg.getContent());
 
             // Renderiza anexos — formato Android: "arquivo.jpg (file attached)"
@@ -189,28 +225,33 @@ public class HtmlGenerator {
             conteudo = PATTERN_MEDIA_OMITTED.matcher(conteudo)
                     .replaceAll("<div class='media-placeholder'>&#128247; mídia não incluída no export</div>");
 
-            String autorHtml = (!enviada)
+            String autorHtml = (!enviada && !mesmaSequencia)
                     ? String.format("<div class='author-name'>%s</div>", escaparHtml(msg.getSender()))
                     : "";
+
+            String classesMensagem = lado + (mesmaSequencia ? " compact" : "");
 
             sb.append(String.format("""
                     <div class="message-row %s">
                         <div class="bubble-wrap">
                             %s
                             <div class="bubble %s">
-                                %s
+                                <div class="bubble-text">%s</div>
                                 <span class="time">%s</span>
                             </div>
                         </div>
                     </div>
                     <div class="clearfix"></div>
                     """,
-                    lado,
+                    classesMensagem,
                     autorHtml,
                     lado,
                     conteudo,
                     escaparHtml(msg.getTime())
             ));
+
+            ultimoLado = lado;
+            ultimoRemetente = remetenteAtual;
         }
 
         sb.append("""
