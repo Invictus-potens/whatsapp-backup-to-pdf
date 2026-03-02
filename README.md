@@ -9,6 +9,11 @@
 
 Converts WhatsApp chat exports (`.zip`) into styled PDF files that preserve the original conversation layout — including images, stickers, audio/video placeholders, and file attachments.
 
+## The backstory
+
+This project was born out of a personal disaster. I lost my entire WhatsApp history to a poorly architected "vibecoded" messaging app. Instead of isolating contact deletions to a separated database, the developer used the WhatsApp API endpoint to delete contacts directly from my phone.
+In an instant, two years of messages with my fiancé were gone. That loss sparked a question: "What if I could export everything to a PDF for legal protection (Sue the dev and his company) or safekeeping?" While this tool can't recover what I lost, I built it to ensure others can document their chats for legal purposes, LLM training, or personal archives. 
+
 ---
 
 ## Features
