@@ -28,8 +28,6 @@ In an instant, two years of messages with my fiancé were gone. That loss sparke
 - **Multi-encoding support** — handles UTF-8 and UTF-16 encoded chat files
 - **Multi-line messages** — correctly reassembles messages that span multiple lines
 
----
-
 ## Pipeline
 
 ```mermaid
@@ -105,6 +103,12 @@ src/main/java/com/whatsappbackuptopdf/
 3. The generated PDF will appear in the project root as `whatsapp chat with <contact>.pdf`.
 
 ---
+
+## How will it look on your end
+
+<div align="center">
+  <img src="src/main/java/com/whatsappbackuptopdf/exemplo.png" width = "85%"/>
+</div>
 
 ## Supported attachment types
 
