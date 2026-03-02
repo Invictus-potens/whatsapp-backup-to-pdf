@@ -1,4 +1,11 @@
-# WhatsApp Backup to PDF
+
+<div align="center">
+  <img src="https://img.icons8.com/color/96/whatsapp.png" width="60"/>
+  &nbsp;→&nbsp;
+  <img src="https://img.icons8.com/color/96/pdf.png" width="60"/>
+
+  # WhatsApp Backup to PDF
+</div>
 
 Converts WhatsApp chat exports (`.zip`) into styled PDF files that preserve the original conversation layout — including images, stickers, audio/video placeholders, and file attachments.
 
